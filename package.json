@@ -1,6 +1,6 @@
 {
   "name": "claude-roast",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Roasts how badly you use Claude Code, based on your ~/.claude history. The opposite of Claude Code Insights.",
   "keywords": [
     "claude",

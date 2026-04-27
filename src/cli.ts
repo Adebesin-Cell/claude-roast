@@ -19,7 +19,7 @@ const DEFAULT_HTML_PATH = "./roast.html";
 const program = new Command()
   .name("claude-roast")
   .description("Roasts how badly you use Claude Code, based on your ~/.claude history.")
-  .version("0.1.0")
+  .version("0.2.0")
   .option("-d, --days <n>", "only consider the last N days", (v) => Number.parseInt(v, 10))
   .option("-p, --project <substring>", "scope to projects matching substring")
   .option("-s, --severity <level>", "gentle | mean | nuclear", "mean")

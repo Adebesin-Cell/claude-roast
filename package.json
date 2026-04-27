@@ -1,0 +1,57 @@
+{
+  "name": "claude-roast",
+  "version": "0.1.0",
+  "description": "Roasts how badly you use Claude Code, based on your ~/.claude history. The opposite of Claude Code Insights.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "cli",
+    "roast",
+    "ai",
+    "developer-tools"
+  ],
+  "type": "module",
+  "bin": {
+    "claude-roast": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.41",
+    "ai": "^6.0.168",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1",
+    "yocto-spinner": "^1.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "license": "MIT",
+  "author": "lope <lope@braindao.org>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Adebesin-Cell/claude-roast.git"
+  },
+  "homepage": "https://github.com/Adebesin-Cell/claude-roast#readme",
+  "bugs": {
+    "url": "https://github.com/Adebesin-Cell/claude-roast/issues"
+  }
+}

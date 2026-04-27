@@ -31,8 +31,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.41",
-    "ai": "^6.0.168",
     "commander": "^12.1.0",
     "picocolors": "^1.1.1",
     "yocto-spinner": "^1.1.0",

@@ -44,7 +44,7 @@ export const CliOptsSchema = z.object({
   json: z.boolean().default(false),
   html: z.union([z.string().min(1), z.boolean()]).optional(),
   open: z.boolean().default(false),
-  model: z.string().min(1).default("anthropic/claude-opus-4-7"),
+  model: z.string().min(1).optional(),
 });
 export type CliOpts = z.infer<typeof CliOptsSchema>;
 

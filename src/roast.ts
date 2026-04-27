@@ -1,4 +1,4 @@
-import { streamText, type LanguageModel } from "ai";
+import { spawn } from "node:child_process";
 import type { Metrics, Severity } from "./schemas.js";
 
 const SEVERITY_TONE = {
@@ -23,20 +23,56 @@ Hard rules:
 
 export type RoastOpts = {
   severity: Severity;
-  model: LanguageModel;
+  model?: string;
 };
 
 export const streamRoast = async function* (
   metrics: Metrics,
   opts: RoastOpts,
 ): AsyncIterable<string> {
-  const result = streamText({
-    model: opts.model,
-    system: SYSTEM,
-    prompt: buildPrompt(metrics, opts.severity),
-    maxOutputTokens: 1500,
+  const args = ["-p", "--system-prompt", SYSTEM];
+  if (opts.model) args.push("--model", opts.model);
+
+  const child = spawn("claude", args, { stdio: ["pipe", "pipe", "pipe"] });
+
+  let spawnError: Error | null = null;
+  child.on("error", (err: NodeJS.ErrnoException) => {
+    spawnError =
+      err.code === "ENOENT"
+        ? new Error(
+            "`claude` binary not found on PATH. Install Claude Code: https://docs.claude.com/en/docs/claude-code",
+          )
+        : err;
   });
-  for await (const chunk of result.textStream) yield chunk;
+
+  child.stdin.write(buildPrompt(metrics, opts.severity));
+  child.stdin.end();
+
+  let stderr = "";
+  child.stderr.on("data", (c: Buffer) => {
+    stderr += c.toString();
+  });
+
+  try {
+    for await (const chunk of child.stdout) {
+      yield (chunk as Buffer).toString();
+    }
+  } catch (err) {
+    if (spawnError) throw spawnError;
+    throw err;
+  }
+
+  const code: number | null = await new Promise((resolve) => {
+    if (child.exitCode !== null) return resolve(child.exitCode);
+    child.once("close", resolve);
+  });
+
+  if (spawnError) throw spawnError;
+  if (code !== 0) {
+    throw new Error(
+      stderr.trim() || `claude exited with code ${code ?? "unknown"}`,
+    );
+  }
 };
 
 export const collectRoast = async (chunks: AsyncIterable<string>) => {

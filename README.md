@@ -6,7 +6,7 @@
 npx claude-roast
 ```
 
-No install. Reads only your local history. Sends a stats summary (no prompt content) to an LLM via the [Vercel AI Gateway](https://vercel.com/ai-gateway) to write the actual roast.
+No install. No API key. Reads only your local history, then shells out to your existing `claude` CLI (`claude -p`) to write the actual roast — using whatever auth you've already set up for Claude Code. Only a stats summary is sent (no prompt content).
 
 ---
 
@@ -42,7 +42,7 @@ npx claude-roast --severity nuclear
 npx claude-roast --days 30
 npx claude-roast --project iqai-prediction
 
-# Just stats, no API call (no key needed)
+# Just stats, no model call
 npx claude-roast --dry-run
 
 # Generate anti-CLAUDE.md to ./CLAUDE.roast.md
@@ -55,54 +55,15 @@ npx claude-roast --html ./out/roast.html
 # Machine-readable
 npx claude-roast --json
 
-# Pick the model (any AI Gateway provider/model string)
-npx claude-roast --model openai/gpt-5
-npx claude-roast --model google/gemini-2.5-pro
+# Override the model passed to `claude -p`
+npx claude-roast --model claude-sonnet-4-6
 ```
 
-## API key
+## Requirements
 
-First run, you'll be prompted to paste a key from either provider — we auto-detect which:
+You need the [`claude` CLI](https://docs.claude.com/en/docs/claude-code) on your `PATH`. That's it — no API keys, no config file. `claude-roast` shells out to `claude -p` and uses whatever auth you've already set up for Claude Code.
 
-- **[Vercel AI Gateway](https://vercel.com/ai-gateway)** — one key, every provider, free tier
-- **[OpenRouter](https://openrouter.ai/keys)** — keys start with `sk-or-`, free models available
-
-The key is saved (chmod 0600) to `~/.claude-roast/config.json` and reused every run after that. No shell env var setup, no re-pasting.
-
-```
-$ npx claude-roast
-…
-No API key found. Paste a Vercel AI Gateway or OpenRouter key — I'll detect which.
-  Get one:  https://vercel.com/ai-gateway  ·  https://openrouter.ai/keys
-  Stored at ~/.claude-roast/config.json (chmod 0600).
-
-  key: ••••••••••••••
-✓ Saved OpenRouter key to ~/.claude-roast/config.json
-```
-
-To swap keys or remove:
-
-```bash
-npx claude-roast --logout
-```
-
-Env vars still take precedence (`AI_GATEWAY_API_KEY`, `OPENROUTER_API_KEY`).
-
-`--dry-run`, `--json`, `--rules`, and `--html` (without a roast) work without any key.
-
-### Picking a model
-
-Default is `anthropic/claude-opus-4-7`. Override per provider:
-
-```bash
-# AI Gateway
-npx claude-roast --model openai/gpt-5
-npx claude-roast --model google/gemini-2.5-pro
-
-# OpenRouter
-npx claude-roast --model anthropic/claude-3.5-sonnet
-npx claude-roast --model meta-llama/llama-3.3-70b-instruct:free   # free tier
-```
+`--dry-run`, `--json`, `--rules`, and `--html` (without a roast) never spawn `claude` and work without it installed.
 
 ## HTML report
 
@@ -117,7 +78,7 @@ npx claude-roast --model meta-llama/llama-3.3-70b-instruct:free   # free tier
 ## How it's built
 
 - **TypeScript**, ESM, Node ≥ 20
-- **[Vercel AI SDK](https://ai-sdk.dev/)** v6 — model-agnostic via the AI Gateway
+- **`claude -p`** — the roast call shells out to your local Claude Code CLI; no API keys, no SDK
 - **[Zod](https://zod.dev/)** — single source of truth for schemas (history entries, session messages, CLI options, metrics)
 - **[picocolors](https://github.com/alexeyraspopov/picocolors)** + **[yocto-spinner](https://github.com/sindresorhus/yocto-spinner)** — modern, tiny terminal output ([e18e](https://e18e.dev/))
 - **[commander](https://github.com/tj/commander.js)** — CLI parsing

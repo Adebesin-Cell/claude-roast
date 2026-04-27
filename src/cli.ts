@@ -12,9 +12,6 @@ import { renderHeader, renderMetrics, renderVerdict } from "./render.js";
 import { renderHtml } from "./html.js";
 import { generateAntiRules } from "./rules.js";
 import { computeVerdict } from "./verdict.js";
-import { promptSecret } from "./prompt.js";
-import { loadConfig, saveConfig, clearConfig, CONFIG_PATH } from "./config.js";
-import { detectProvider, resolveModel, providerLabel } from "./provider.js";
 
 const ROAST_RULES_PATH = "./CLAUDE.roast.md";
 const DEFAULT_HTML_PATH = "./roast.html";
@@ -26,19 +23,13 @@ const program = new Command()
   .option("-d, --days <n>", "only consider the last N days", (v) => Number.parseInt(v, 10))
   .option("-p, --project <substring>", "scope to projects matching substring")
   .option("-s, --severity <level>", "gentle | mean | nuclear", "mean")
-  .option("--dry-run", "compute metrics only, no API call")
+  .option("--dry-run", "compute metrics only, don't call claude")
   .option("--rules", "also write anti-rules to ./CLAUDE.roast.md")
   .option("--html [path]", "also write a shareable HTML report (default ./roast.html)")
   .option("--open", "open the HTML report in your default browser")
   .option("--json", "emit metrics as JSON and exit")
-  .option("--model <id>", "AI Gateway model id", "anthropic/claude-opus-4-7")
-  .option("--logout", `forget the saved API key (${CONFIG_PATH})`)
+  .option("--model <id>", "override the model passed to `claude -p --model`")
   .action(async (raw) => {
-    if (raw.logout) {
-      await clearConfig();
-      console.log(pc.green(`✓ Removed ${CONFIG_PATH}`));
-      return;
-    }
     const parsed = CliOptsSchema.safeParse(raw);
     if (!parsed.success) {
       console.error(pc.red("✖ Invalid options: " + parsed.error.message));
@@ -111,14 +102,11 @@ const run = async (opts: CliOpts) => {
     return;
   }
 
-  const { provider, apiKey } = await ensureApiKey();
-  const model = resolveModel(provider, opts.model, apiKey);
-
   const callingSpinner = yoctoSpinner({
-    text: `Calling ${providerLabel(provider)}…`,
+    text: "Asking claude to roast you…",
     color: "red",
   }).start();
-  const stream = streamRoast(metrics, { severity: opts.severity, model });
+  const stream = streamRoast(metrics, { severity: opts.severity, model: opts.model });
 
   console.log("\n" + pc.bold(pc.red("─".repeat(60))));
   console.log(pc.bold(pc.red("  THE ROAST")));
@@ -182,63 +170,6 @@ const openInBrowser = (filePath: string) => {
         : ["xdg-open", [absolute]];
   const child = spawn(cmd as string, args as string[], { detached: true, stdio: "ignore" });
   child.unref();
-};
-
-const envKey = () => {
-  if (process.env.OPENROUTER_API_KEY) {
-    return { provider: "openrouter" as const, apiKey: process.env.OPENROUTER_API_KEY };
-  }
-  if (process.env.AI_GATEWAY_API_KEY) {
-    return { provider: "gateway" as const, apiKey: process.env.AI_GATEWAY_API_KEY };
-  }
-  return null;
-};
-
-const ensureApiKey = async () => {
-  const fromEnv = envKey();
-  if (fromEnv) return fromEnv;
-
-  const config = await loadConfig();
-  if (config.apiKey) {
-    return { provider: config.provider ?? "gateway", apiKey: config.apiKey };
-  }
-
-  if (!process.stdin.isTTY) {
-    console.log(
-      "\n" +
-        pc.red("✖ No API key found.") +
-        "\n  " +
-        pc.dim("Set AI_GATEWAY_API_KEY or OPENROUTER_API_KEY, run --dry-run, or run interactively."),
-    );
-    process.exit(1);
-  }
-
-  console.log(
-    "\n" +
-      pc.dim("No API key found. Paste a Vercel AI Gateway or OpenRouter key — I'll detect which.") +
-      "\n" +
-      pc.dim("  Get one:  https://vercel.com/ai-gateway  ·  https://openrouter.ai/keys") +
-      "\n" +
-      pc.dim(`  Stored at ${CONFIG_PATH} (chmod 0600). Run \`claude-roast --logout\` to remove.`) +
-      "\n",
-  );
-
-  let key: string;
-  try {
-    key = (await promptSecret(pc.bold("  key: "))).trim();
-  } catch (err) {
-    console.log(pc.red("✖ " + (err as Error).message));
-    process.exit(1);
-  }
-  if (!key) {
-    console.log(pc.red("✖ No key provided."));
-    process.exit(1);
-  }
-
-  const provider = detectProvider(key);
-  await saveConfig({ apiKey: key, provider });
-  console.log(pc.green(`✓ Saved ${providerLabel(provider)} key to ${CONFIG_PATH}`));
-  return { provider, apiKey: key };
 };
 
 const withSpinner = async <T,>(
